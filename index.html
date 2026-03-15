@@ -894,7 +894,13 @@
 
 <script>
 // ─── STATE ─────────────────────────────────────────────────────────────────
-let sheetUrl = localStorage.getItem('csp_url') || '';
+// ✅ COLLE TON URL ICI UNE BONNE FOIS POUR TOUTES :
+const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbycihlqqNA9ubd2hGRMXxYekMaUZzlQWmVMq4s_MLaT6c6_iRSFgsrNF7z1ZxfklvRZ/exec';
+
+let sheetUrl = SHEET_URL_FIXE !== 'COLLE_TON_URL_ICI'
+  ? SHEET_URL_FIXE
+  : (localStorage.getItem('csp_url') || '');
+
 let allData = [];
 let selectedEnergie = 3;
 let chartScore = null;
@@ -905,6 +911,8 @@ window.addEventListener('load', () => {
   updateHeaderDate();
   updateScore(5); // init slider color
   if (sheetUrl) {
+    // Toujours sauvegarder en localStorage aussi
+    localStorage.setItem('csp_url', sheetUrl);
     showApp();
   }
 });
@@ -929,6 +937,7 @@ function saveConfig() {
   localStorage.setItem('csp_url', url);
   sheetUrl = url;
   showApp();
+  // Rappel : pour ne plus jamais voir cet écran, colle l'URL dans SHEET_URL_FIXE dans le code
 }
 
 function showApp() {
