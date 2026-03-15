@@ -5,23 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="CoachSportPOD">
 <title>CoachSportPOD</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --surface2: #1c1c27;
-    --border: #2a2a3a;
-    --accent: #c8f542;
-    --accent2: #42f5a7;
-    --text: #f0f0f5;
-    --muted: #7070a0;
-    --danger: #f54242;
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #eef0f5;
+    --border: #dde1ea;
+    --accent: #1a6bff;
+    --accent2: #00b87a;
+    --text: #111827;
+    --muted: #6b7280;
+    --danger: #ef4444;
     --radius: 16px;
+    /* slider specific */
+    --slider-on: #00b87a;
+    --slider-off: #ef4444;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -42,7 +45,7 @@
     justify-content: center;
     min-height: 100dvh;
     padding: 32px 24px;
-    background: radial-gradient(ellipse at 50% 0%, #1e2a0a 0%, var(--bg) 70%);
+    background: radial-gradient(ellipse at 50% 0%, #dbeafe 0%, var(--bg) 70%);
   }
 
   #config-screen .logo {
@@ -108,7 +111,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(10,10,15,0.92);
+    background: rgba(245,246,250,0.95);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     padding: 16px 20px 12px;
@@ -137,7 +140,7 @@
     bottom: 0;
     left: 0; right: 0;
     z-index: 100;
-    background: rgba(13,13,20,0.97);
+    background: rgba(255,255,255,0.97);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
@@ -258,7 +261,7 @@
   }
 
   .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
-  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--bg); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: #ffffff; }
 
   /* SLIDER */
   .slider-container { margin-bottom: 4px; }
@@ -282,9 +285,9 @@
     -webkit-appearance: none;
     width: 22px; height: 22px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--slider-on);
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(200,245,66,0.4);
+    box-shadow: 0 2px 8px rgba(0,184,122,0.35);
   }
 
   .slider-value {
@@ -294,6 +297,12 @@
     min-width: 28px;
     text-align: center;
   }
+
+  /* Dynamic slider color classes */
+  .slider-red::-webkit-slider-thumb { background: var(--slider-off) !important; box-shadow: 0 2px 8px rgba(239,68,68,0.35) !important; }
+  .slider-red { accent-color: var(--slider-off); }
+  .slider-green::-webkit-slider-thumb { background: var(--slider-on) !important; box-shadow: 0 2px 8px rgba(0,184,122,0.35) !important; }
+  .slider-green { accent-color: var(--slider-on); }
 
   /* TEXTAREA */
   textarea {
@@ -318,7 +327,7 @@
     width: 100%;
     padding: 16px;
     background: var(--accent);
-    color: var(--bg);
+    color: #ffffff;
     border: none;
     border-radius: 12px;
     font-family: 'Bebas Neue', sans-serif;
@@ -330,6 +339,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    box-shadow: 0 4px 14px rgba(26,107,255,0.3);
   }
 
   .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
@@ -389,8 +399,8 @@
 
   /* STREAK */
   .streak-card {
-    background: linear-gradient(135deg, rgba(200,245,66,0.12), rgba(66,245,167,0.06));
-    border: 1px solid rgba(200,245,66,0.3);
+    background: linear-gradient(135deg, rgba(26,107,255,0.08), rgba(0,184,122,0.06));
+    border: 1px solid rgba(26,107,255,0.2);
     border-radius: var(--radius);
     padding: 20px;
     margin-bottom: 16px;
@@ -456,7 +466,7 @@
     color: var(--text);
   }
 
-  .badge.done { border-color: var(--accent); color: var(--accent); }
+  .badge.done { border-color: var(--accent2); color: var(--accent2); background: rgba(0,184,122,0.07); }
 
   .history-score {
     font-family: 'Bebas Neue', sans-serif;
@@ -475,7 +485,7 @@
 
   .score-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
     border-radius: 2px;
     transition: width 0.8s ease;
   }
@@ -493,9 +503,10 @@
     bottom: 90px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: var(--surface);
+    background: #ffffff;
     border: 1px solid var(--accent);
     color: var(--text);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     padding: 12px 20px;
     border-radius: 30px;
     font-size: 14px;
@@ -516,7 +527,7 @@
   .loading-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(10,10,15,0.85);
+    background: rgba(245,246,250,0.85);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -573,7 +584,7 @@
 
   .energie-pill.selected {
     border-color: var(--accent);
-    background: rgba(200,245,66,0.1);
+    background: rgba(26,107,255,0.08);
   }
 
   .energie-pill span {
@@ -585,8 +596,8 @@
 
   /* SUCCESS */
   .success-banner {
-    background: linear-gradient(135deg, rgba(200,245,66,0.15), rgba(66,245,167,0.08));
-    border: 1px solid rgba(200,245,66,0.4);
+    background: linear-gradient(135deg, rgba(0,184,122,0.1), rgba(26,107,255,0.06));
+    border: 1px solid rgba(0,184,122,0.4);
     border-radius: var(--radius);
     padding: 20px;
     text-align: center;
@@ -597,7 +608,7 @@
   .success-banner.show { display: block; }
 
   .success-banner .icon { font-size: 36px; margin-bottom: 8px; }
-  .success-banner h3 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--accent); }
+  .success-banner h3 { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--accent2); }
   .success-banner p { font-size: 13px; color: var(--muted); margin-top: 4px; }
 
   /* ERROR */
@@ -656,14 +667,15 @@
   }
 
   .week-dot.done {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg);
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #ffffff;
   }
 
   .week-dot.today {
     border-color: var(--accent);
     color: var(--accent);
+    font-weight: 700;
   }
 
   .week-day-label {
@@ -891,6 +903,7 @@ let chartActivity = null;
 // ─── INIT ───────────────────────────────────────────────────────────────────
 window.addEventListener('load', () => {
   updateHeaderDate();
+  updateScore(5); // init slider color
   if (sheetUrl) {
     showApp();
   }
@@ -1011,6 +1024,17 @@ function setEnergie(val) {
 
 function updateScore(val) {
   document.getElementById('score-label').textContent = val;
+  const slider = document.getElementById('slider-score');
+  // Red for low scores (1-4), green for good scores (5-10)
+  if (parseInt(val) <= 4) {
+    slider.classList.add('slider-red');
+    slider.classList.remove('slider-green');
+    document.getElementById('score-label').style.color = 'var(--slider-off)';
+  } else {
+    slider.classList.add('slider-green');
+    slider.classList.remove('slider-red');
+    document.getElementById('score-label').style.color = 'var(--slider-on)';
+  }
 }
 
 async function saveSeance() {
@@ -1167,9 +1191,9 @@ function renderCharts() {
       labels: last30.map(d => d.label),
       datasets: [{
         data: last30.map(d => d.score || null),
-        borderColor: '#c8f542',
-        backgroundColor: 'rgba(200,245,66,0.08)',
-        pointBackgroundColor: '#c8f542',
+        borderColor: '#1a6bff',
+        backgroundColor: 'rgba(26,107,255,0.08)',
+        pointBackgroundColor: '#1a6bff',
         pointRadius: 3,
         tension: 0.4,
         fill: true,
@@ -1187,14 +1211,14 @@ function renderCharts() {
     data: {
       labels: last30.map(d => d.label),
       datasets: [
-        { label: 'Mobilité', data: last30.map(d => d.mob ? 1 : 0), backgroundColor: '#c8f542', borderRadius: 3 },
-        { label: 'Renforcement', data: last30.map(d => d.renfo ? 1 : 0), backgroundColor: '#42f5a7', borderRadius: 3 },
-        { label: 'Respiration', data: last30.map(d => d.resp ? 1 : 0), backgroundColor: '#4286f5', borderRadius: 3 },
+        { label: 'Mobilité', data: last30.map(d => d.mob ? 1 : 0), backgroundColor: '#1a6bff', borderRadius: 3 },
+        { label: 'Renforcement', data: last30.map(d => d.renfo ? 1 : 0), backgroundColor: '#00b87a', borderRadius: 3 },
+        { label: 'Respiration', data: last30.map(d => d.resp ? 1 : 0), backgroundColor: '#f59e0b', borderRadius: 3 },
       ]
     },
     options: {
       ...chartOptions(0, 1),
-      plugins: { legend: { display: true, labels: { color: '#7070a0', font: { size: 11 } } } }
+      plugins: { legend: { display: true, labels: { color: '#6b7280', font: { size: 11 } } } }
     }
   });
 }
@@ -1224,8 +1248,8 @@ function chartOptions(min, max) {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: '#7070a0', font: { size: 9 }, maxTicksLimit: 8 }, grid: { color: '#2a2a3a' } },
-      y: { min, max, ticks: { color: '#7070a0', font: { size: 10 } }, grid: { color: '#2a2a3a' } }
+      x: { ticks: { color: '#9ca3af', font: { size: 9 }, maxTicksLimit: 8 }, grid: { color: '#e5e7eb' } },
+      y: { min, max, ticks: { color: '#9ca3af', font: { size: 10 } }, grid: { color: '#e5e7eb' } }
     }
   };
 }
