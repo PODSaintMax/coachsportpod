@@ -164,6 +164,25 @@ textarea:focus { border-color:var(--accent); }
 .wp-pill.res { background:rgba(245,158,11,.1); }
 .wp-pill.rest { background:#f5f6fa; font-size:11px; color:var(--muted); padding:11px 2px; }
 
+/* LEVEL TABS */
+.level-tabs { display:flex; gap:6px; margin-bottom:16px; }
+.level-tab { flex:1; padding:8px 4px; background:var(--surface2); border:2px solid var(--border); border-radius:10px; text-align:center; cursor:pointer; font-size:12px; font-weight:600; transition:all .15s; }
+.level-tab.active { border-color:var(--accent); background:rgba(26,107,255,.08); color:var(--accent); }
+.level-tab .lt-icon { font-size:16px; display:block; margin-bottom:2px; }
+.level-content { display:none; }
+.level-content.active { display:block; }
+.level-desc { font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:16px; padding:10px 12px; background:var(--surface2); border-radius:10px; }
+
+/* LEVEL SELECTOR in today grid */
+.level-selector { margin-top:10px; display:flex; gap:6px; }
+.level-pill { flex:1; padding:7px 4px; background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; text-align:center; font-size:11px; font-weight:600; cursor:pointer; transition:all .15s; }
+.level-pill.selected { border-color:var(--accent); background:rgba(26,107,255,.1); color:var(--accent); }
+
+/* DELETE in history */
+.history-item { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; }
+.history-del-btn { background:none; border:none; color:var(--border); font-size:18px; cursor:pointer; padding:4px; line-height:1; flex-shrink:0; }
+.history-del-btn:hover { color:var(--danger); }
+
 .settings-row { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--border); cursor:pointer; }
 .settings-row:last-child { border-bottom:none; }
 .settings-row-label { font-size:14px; font-weight:500; }
@@ -242,6 +261,14 @@ textarea:focus { border-color:var(--accent); }
           <input type="number" class="form-input" id="libre-minutes" placeholder="45" min="0" max="59" style="width:72px;text-align:center">
           <span style="color:var(--muted);font-size:13px">min</span>
         </div>
+      </div>
+    </div>
+    <div class="card" id="card-level" style="display:none">
+      <div class="card-title">Mon niveau pour cette séance</div>
+      <div class="level-selector">
+        <div class="level-pill" data-level="debutant" onclick="selectLevel('debutant')">🌱 Débutant</div>
+        <div class="level-pill" data-level="intermediaire" onclick="selectLevel('intermediaire')">⚡ Intermédiaire</div>
+        <div class="level-pill" data-level="champion" onclick="selectLevel('champion')">🏆 Champion</div>
       </div>
     </div>
     <div class="card">
@@ -383,48 +410,155 @@ textarea:focus { border-color:var(--accent); }
 <div class="loading-overlay" id="loader"><div class="spinner"></div></div>
 
 <script>
-const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbzF0IA3EXm39Vpw5i7PBC3RSKJ2GktLoMZHkdiwD86oTBI3oMPFEGrbU02P_9OSmy0/exec';
+const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbzSFZmSBiRAigR17fs_jVx3mIs_x5YAkMkhg8gjFU_dxS05P2YJevmgUYHO1z-nTEMu/exec';
 
 // ── SÉANCES PAR DÉFAUT ──────────────────────────────────────────────────────
 const DEFAULT_SESSIONS = [
   {
     id: 'mobilite', name: 'Mobilité', emoji: '🧘', duration: '9-12 min',
-    level: 'Débutant', color: '#1a6bff',
-    benefits: ['Souplesse','Posture','Anti-douleurs'],
+    color: '#1a6bff', benefits: ['Souplesse','Posture','Anti-douleurs'],
     description: 'Séance de mobilité articulaire pour améliorer ta souplesse et ta posture au quotidien. Idéale le matin ou après une longue journée assise.',
-    exercises: [
-      { name: 'Rotations cervicales', sets: '10 rép. lentes', desc: 'Tête droite, tourne lentement de gauche à droite. Libère les tensions du cou.', svg: 'neck' },
-      { name: 'Cercles d\'épaules', sets: '10 rép. × 2 sens', desc: 'Bras le long du corps, grands cercles avec les épaules vers l\'avant puis l\'arrière.', svg: 'shoulder' },
-      { name: 'Rotation thoracique', sets: '8 rép. par côté', desc: 'Assis en tailleur, mains derrière la tête, tourne le buste à droite et à gauche.', svg: 'torso' },
-      { name: 'Étirement hanches', sets: '30 sec. par côté', desc: 'En fente basse, pousse la hanche avant vers l\'avant. Parfait après une journée assise.', svg: 'hip' },
-      { name: 'Flexion genoux', sets: '10 rép. lentes', desc: 'Debout, plie et déplie les genoux en gardant le dos droit. Active les articulations.', svg: 'knee' },
+    levels: {
+      debutant: {
+        label: 'Débutant', icon: '🌱', duration: '9 min',
+        desc: 'Mouvements doux, amplitude réduite. Idéal si tu reprends après une longue pause ou si tu ressens des raideurs.',
+        exercises: [
+          { name: 'Rotations cervicales lentes', sets: '8 rép. × 2 sens', desc: 'Tête droite, tourne très lentement de gauche à droite. Amplitude 50%. Stoppe si douleur.', svg: 'neck' },
+          { name: 'Haussements d\'épaules', sets: '10 rép.', desc: 'Monte les épaules vers les oreilles, tiens 2 sec., relâche. Simple et efficace pour débloquer.', svg: 'shoulder' },
+          { name: 'Rotation du buste assis', sets: '6 rép. par côté', desc: 'Assis sur une chaise, pieds à plat, tourne doucement le buste en posant la main sur le genou opposé.', svg: 'torso' },
+          { name: 'Étirement debout quadriceps', sets: '20 sec. par côté', desc: 'Debout, plie un genou et attrape la cheville. Maintiens l\'équilibre avec l\'autre main sur un mur si besoin.', svg: 'hip' },
+          { name: 'Flexions de cheville', sets: '10 rép. par pied', desc: 'Assis, soulève le pied et fléchis/pointe l\'orteil. Lubrifie les articulations des chevilles.', svg: 'knee' },
+        ],
+        program: ['mob','rest','mob','rest','mob','rest','rest']
+      },
+      intermediaire: {
+        label: 'Intermédiaire', icon: '⚡', duration: '11 min',
+        desc: 'Amplitude complète, enchaînements fluides. Pour quelqu\'un qui pratique déjà 2-3 fois par semaine.',
+        exercises: [
+          { name: 'Rotations cervicales', sets: '10 rép. × 2 sens', desc: 'Tête droite, tourne lentement de gauche à droite. Amplitude complète. Libère les tensions du cou.', svg: 'neck' },
+          { name: 'Cercles d\'épaules', sets: '10 rép. × 2 sens', desc: 'Bras le long du corps, grands cercles avec les épaules vers l\'avant puis l\'arrière. Amplitude maximale.', svg: 'shoulder' },
+          { name: 'Rotation thoracique sol', sets: '8 rép. par côté', desc: 'Assis en tailleur, mains derrière la tête, tourne le buste à droite et à gauche. Maintiens 1 sec. en fin de course.', svg: 'torso' },
+          { name: 'Étirement hanches en fente', sets: '30 sec. par côté', desc: 'En fente basse, pousse la hanche avant vers l\'avant. Bras levé du même côté pour plus d\'ouverture.', svg: 'hip' },
+          { name: 'Squat pause basse', sets: '10 rép. 2 sec. en bas', desc: 'Descends en squat, pause 2 sec. en bas, remonte lentement. Active genoux, hanches et chevilles.', svg: 'knee' },
+        ],
+        program: ['mob','rest','ren','mob','rest','ren','rest']
+      },
+      champion: {
+        label: 'Champion', icon: '🏆', duration: '12 min',
+        desc: 'Mobilité profonde, positions tenues longtemps, enchaînements exigeants. Pour un pratiquant régulier visant l\'excellence posturale.',
+        exercises: [
+          { name: 'Rotations + inclinaisons cervicales', sets: '12 rép. × 4 directions', desc: 'Combine rotations, inclinaisons latérales et demi-cercles. Travail complet du rachis cervical.', svg: 'neck' },
+          { name: 'Ouverture thoracique au sol', sets: '8 rép. par côté', desc: 'Allongé sur le côté, genou supérieur au sol, ouvre le bras vers l\'arrière en suivant des yeux. Rotation profonde.', svg: 'shoulder' },
+          { name: 'Rotation thoracique en fente', sets: '10 rép. par côté', desc: 'En fente avant, pose le coude sur le genou avant et tourne le bras supérieur vers le plafond. Tiens 3 sec.', svg: 'torso' },
+          { name: 'Pigeon yoga', sets: '45 sec. par côté', desc: 'Depuis la position chien tête en bas, ramène un genou vers la main du même côté. Ouverture profonde de la hanche.', svg: 'hip' },
+          { name: 'Squat profond tenu', sets: '3 × 45 sec.', desc: 'Squat le plus bas possible, talons au sol, mains jointes devant. Mobilise chevilles, genoux et hanches simultanément.', svg: 'knee' },
+        ],
+        program: ['mob','ren','mob','rest','mob','ren','mob']
+      }
+    },
+    exercises: [ // fallback
+      { name: 'Rotations cervicales', sets: '10 rép. lentes', desc: 'Tête droite, tourne lentement de gauche à droite.', svg: 'neck' },
+      { name: 'Cercles d\'épaules', sets: '10 rép. × 2 sens', desc: 'Grands cercles avec les épaules.', svg: 'shoulder' },
+      { name: 'Rotation thoracique', sets: '8 rép. par côté', desc: 'Assis en tailleur, tourne le buste.', svg: 'torso' },
+      { name: 'Étirement hanches', sets: '30 sec. par côté', desc: 'En fente basse, ouvre la hanche.', svg: 'hip' },
+      { name: 'Flexion genoux', sets: '10 rép. lentes', desc: 'Plie et déplie les genoux.', svg: 'knee' },
     ],
     program: ['mob','rest','ren','mob','rest','ren','rest']
   },
   {
     id: 'renforcement', name: 'Renforcement', emoji: '💪', duration: '10-12 min',
-    level: 'Intermédiaire', color: '#00b87a',
-    benefits: ['Tonus','Force','Métabolisme'],
+    color: '#00b87a', benefits: ['Tonus','Force','Métabolisme'],
     description: 'Circuit de renforcement musculaire sans matériel, uniquement avec le poids du corps. Booste ton métabolisme et tonifie l\'ensemble du corps.',
+    levels: {
+      debutant: {
+        label: 'Débutant', icon: '🌱', duration: '10 min',
+        desc: 'Mouvements fondamentaux à faible intensité. Idéal pour bâtir les bases sans risque de blessure.',
+        exercises: [
+          { name: 'Pompes genoux', sets: '3 × 6-8 rép.', desc: 'Mains à largeur d\'épaules, genoux au sol, corps droit des genoux à la tête. Descends jusqu\'à 2 cm du sol.', svg: 'pushup' },
+          { name: 'Demi-squats', sets: '3 × 10 rép.', desc: 'Pieds à largeur d\'épaules, descends à mi-hauteur (60°). Idéal pour apprivoiser le mouvement.', svg: 'squat' },
+          { name: 'Gainage genoux', sets: '3 × 15 sec.', desc: 'En appui sur les avant-bras et les genoux. Corps horizontal, contraction abdominale. Plus accessible que le gainage classique.', svg: 'plank' },
+          { name: 'Fentes statiques', sets: '3 × 6 par jambe', desc: 'Grand pas en avant, maintiens la position 2 sec. puis reviens. Garde le buste droit.', svg: 'lunge' },
+          { name: 'Dips chaise haut', sets: '3 × 6-8 rép.', desc: 'Mains sur le bord d\'une chaise solide, fléchis légèrement les coudes (angle 45°). Ne descends pas trop bas.', svg: 'dips' },
+        ],
+        program: ['rest','ren','mob','rest','ren','mob','rest']
+      },
+      intermediaire: {
+        label: 'Intermédiaire', icon: '⚡', duration: '11 min',
+        desc: 'Amplitude complète, séries plus longues. Pour quelqu\'un avec de bonnes bases de condition physique.',
+        exercises: [
+          { name: 'Pompes', sets: '3 × 10-12 rép.', desc: 'Mains à largeur d\'épaules, corps droit. Descends jusqu\'à 2 cm du sol. Expirez en montant.', svg: 'pushup' },
+          { name: 'Squats profonds', sets: '3 × 12 rép.', desc: 'Pieds à largeur d\'épaules, descends jusqu\'à ce que les cuisses soient parallèles au sol. Talons au sol.', svg: 'squat' },
+          { name: 'Gainage classique', sets: '3 × 25-30 sec.', desc: 'En appui sur les avant-bras et les orteils, corps horizontal. Contraction abdominale constante. Respire normalement.', svg: 'plank' },
+          { name: 'Fentes alternées', sets: '3 × 8 par jambe', desc: 'Grand pas en avant, genou arrière proche du sol. Alterne gauche/droite en rythme.', svg: 'lunge' },
+          { name: 'Dips chaise', sets: '3 × 10 rép.', desc: 'Mains sur le bord d\'une chaise solide derrière toi, fléchis les coudes à 90°.', svg: 'dips' },
+        ],
+        program: ['rest','ren','mob','rest','ren','mob','rest']
+      },
+      champion: {
+        label: 'Champion', icon: '🏆', duration: '12 min',
+        desc: 'Variantes explosives et isométriques. Pour un athlète cherchant à dépasser ses limites sans matériel.',
+        exercises: [
+          { name: 'Pompes explosives', sets: '4 × 8 rép.', desc: 'Pompe classique mais pousse fort à la montée pour décoller les mains du sol. Atterris souple. Puissance maximale.', svg: 'pushup' },
+          { name: 'Squats sautés', sets: '4 × 10 rép.', desc: 'Descends en squat profond et propulse-toi vers le haut. Atterris souple, cuisses qui amortissent. Cardio + force.', svg: 'squat' },
+          { name: 'Gainage dynamique', sets: '3 × 40 sec.', desc: 'En position de gainage, alterne une élévation de jambe toutes les 3 sec. Corps strict, pas de rotation du bassin.', svg: 'plank' },
+          { name: 'Fentes sautées', sets: '3 × 6 par jambe', desc: 'En fente basse, saute et change de jambe en l\'air. Exigeant pour les quadriceps et la coordination.', svg: 'lunge' },
+          { name: 'Dips lents', sets: '4 × 8 rép. 3-1-3', desc: '3 sec. pour descendre, 1 sec. en bas, 3 sec. pour remonter. Le tempo lent multiplie l\'intensité.', svg: 'dips' },
+        ],
+        program: ['ren','mob','ren','rest','ren','mob','ren']
+      }
+    },
     exercises: [
-      { name: 'Pompes', sets: '3 × 8-12 rép.', desc: 'Mains à largeur d\'épaules, corps droit. Descends jusqu\'à 2 cm du sol. Modifie en appui sur les genoux si nécessaire.', svg: 'pushup' },
-      { name: 'Squats', sets: '3 × 12 rép.', desc: 'Pieds à largeur d\'épaules, descends jusqu\'à ce que les cuisses soient parallèles au sol.', svg: 'squat' },
-      { name: 'Gainage', sets: '3 × 20-30 sec.', desc: 'En appui sur les avant-bras et les orteils, corps horizontal. Contraction abdominale constante.', svg: 'plank' },
-      { name: 'Fentes alternées', sets: '3 × 8 par jambe', desc: 'Grand pas en avant, genou arrière proche du sol. Alterne gauche/droite en rythme.', svg: 'lunge' },
-      { name: 'Dips chaise', sets: '3 × 8-10 rép.', desc: 'Mains sur le bord d\'une chaise solide derrière toi, fléchis les coudes pour descendre.', svg: 'dips' },
+      { name: 'Pompes', sets: '3 × 8-12 rép.', desc: 'Mains à largeur d\'épaules, corps droit.', svg: 'pushup' },
+      { name: 'Squats', sets: '3 × 12 rép.', desc: 'Pieds à largeur d\'épaules.', svg: 'squat' },
+      { name: 'Gainage', sets: '3 × 20-30 sec.', desc: 'Corps horizontal, contraction constante.', svg: 'plank' },
+      { name: 'Fentes alternées', sets: '3 × 8 par jambe', desc: 'Alterne gauche/droite.', svg: 'lunge' },
+      { name: 'Dips chaise', sets: '3 × 8-10 rép.', desc: 'Fléchis les coudes à 90°.', svg: 'dips' },
     ],
     program: ['rest','ren','mob','rest','ren','mob','rest']
   },
   {
     id: 'respiration', name: 'Respiration', emoji: '🫁', duration: '9-10 min',
-    level: 'Tous niveaux', color: '#f59e0b',
-    benefits: ['Stress','Énergie','Sommeil'],
+    color: '#f59e0b', benefits: ['Stress','Énergie','Sommeil'],
     description: 'Techniques de respiration pour réduire le stress, booster l\'énergie et améliorer la qualité du sommeil. Aucun matériel requis.',
+    levels: {
+      debutant: {
+        label: 'Débutant', icon: '🌱', duration: '9 min',
+        desc: 'Techniques simples et accessibles. Idéal pour découvrir la respiration consciente sans se sentir dépassé.',
+        exercises: [
+          { name: 'Respiration abdominale', sets: '3 min', desc: 'Pose une main sur le ventre. Inspire par le nez en gonflant le ventre (pas la poitrine). Expire lentement. La base de tout.', svg: 'breath1' },
+          { name: 'Cohérence cardiaque simple', sets: '3 min (6×/min)', desc: 'Inspire 5 sec., expire 5 sec. Régule le système nerveux. Fais-le assis, yeux fermés si possible.', svg: 'breath1' },
+          { name: 'Expire longue', sets: '6 cycles', desc: 'Inspire 4 sec., expire 8 sec. L\'expiration longue active le nerf vague et calme immédiatement le système nerveux.', svg: 'breath2' },
+        ],
+        program: ['res','rest','mob','res','rest','mob','rest']
+      },
+      intermediaire: {
+        label: 'Intermédiaire', icon: '⚡', duration: '10 min',
+        desc: 'Techniques plus précises avec rétentions. Pour quelqu\'un ayant déjà pratiqué la respiration consciente.',
+        exercises: [
+          { name: 'Cohérence cardiaque', sets: '5 min (6×/min)', desc: 'Inspire 5 sec., expire 5 sec. Régule le système nerveux et réduit le cortisol (hormone du stress).', svg: 'breath1' },
+          { name: 'Respiration 4-7-8', sets: '4 cycles', desc: 'Inspire 4 sec., retiens 7 sec., expire 8 sec. Idéal avant le coucher pour s\'endormir rapidement.', svg: 'breath2' },
+          { name: 'Respiration carrée', sets: '4 cycles', desc: 'Inspire 4 sec., retiens 4 sec., expire 4 sec., retiens 4 sec. Technique des forces spéciales pour gérer le stress.', svg: 'breath3' },
+          { name: 'Souffle de feu', sets: '30 sec. × 2', desc: 'Expirations rapides et rythmées par le ventre, 1 par seconde. Énergisant et détoxifiant.', svg: 'breath4' },
+        ],
+        program: ['res','mob','rest','res','ren','rest','mob']
+      },
+      champion: {
+        label: 'Champion', icon: '🏆', duration: '12 min',
+        desc: 'Techniques avancées avec rétentions longues et hyperventilation contrôlée. Uniquement si tu as déjà une pratique régulière.',
+        exercises: [
+          { name: 'Wim Hof — round 1', sets: '30 respirations + rétention', desc: '30 inspirations profondes rapides, puis expire et retiens le souffle à vide. Tiens aussi longtemps que possible. Ne jamais pratiquer dans l\'eau.', svg: 'breath1' },
+          { name: 'Wim Hof — round 2', sets: '30 respirations + rétention', desc: 'Reprends les 30 respirations. La rétention sera plus longue qu\'au round 1. Reste allongé ou assis.', svg: 'breath2' },
+          { name: 'Respiration 4-7-8 avancée', sets: '8 cycles', desc: 'Inspire 4 sec., retiens 7 sec., expire 8 sec. Plus de cycles qu\'au niveau intermédiaire pour un effet profond.', svg: 'breath3' },
+          { name: 'Respiration alternée (Nadi Shodhana)', sets: '5 min', desc: 'Bouche droite d\'un doigt, inspire par la narine gauche 4 sec., bouche gauche, expire droite 4 sec. Alterne. Équilibre les deux hémisphères.', svg: 'breath4' },
+        ],
+        program: ['res','mob','res','rest','res','mob','rest']
+      }
+    },
     exercises: [
-      { name: 'Cohérence cardiaque', sets: '5 min (6×/min)', desc: 'Inspire 5 sec., expire 5 sec. Régule le système nerveux et réduit le cortisol (hormone du stress).', svg: 'breath1' },
-      { name: 'Respiration 4-7-8', sets: '4 cycles', desc: 'Inspire 4 sec., retiens 7 sec., expire 8 sec. Idéal avant le coucher pour s\'endormir rapidement.', svg: 'breath2' },
-      { name: 'Respiration carrée', sets: '4 cycles', desc: 'Inspire 4 sec., retiens 4 sec., expire 4 sec., retiens 4 sec. Technique utilisée par les forces spéciales.', svg: 'breath3' },
-      { name: 'Souffle de feu', sets: '30 sec. × 2', desc: 'Expirations rapides et rythmées par le ventre, 1 par seconde. Énergisant et détoxifiant.', svg: 'breath4' },
+      { name: 'Cohérence cardiaque', sets: '5 min', desc: 'Inspire 5 sec., expire 5 sec.', svg: 'breath1' },
+      { name: 'Respiration 4-7-8', sets: '4 cycles', desc: 'Inspire 4, retiens 7, expire 8.', svg: 'breath2' },
+      { name: 'Respiration carrée', sets: '4 cycles', desc: '4 sec. chaque phase.', svg: 'breath3' },
+      { name: 'Souffle de feu', sets: '30 sec. × 2', desc: 'Expirations rapides.', svg: 'breath4' },
     ],
     program: ['res','mob','rest','res','ren','rest','mob']
   }
@@ -453,6 +587,7 @@ let sheetUrl = SHEET_URL_FIXE !== 'COLLE_TON_URL_ICI'
 let allData = [];
 let selectedEnergie = 3;
 let selectedSession = null;
+let selectedLevel = null;
 let chartScore = null;
 let chartActivity = null;
 let customSessions = JSON.parse(localStorage.getItem('csp_custom_sessions') || '[]');
@@ -545,6 +680,7 @@ function renderSessionGrid() {
 
 function selectSession(id) {
   selectedSession = id;
+  selectedLevel = null;
   document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
   const none = document.querySelector('.session-none');
   const libre = document.querySelector('.session-libre');
@@ -553,10 +689,22 @@ function selectSession(id) {
   if (id === null) { if (none) none.classList.add('selected'); }
   else if (id === 'libre') { if (libre) libre.classList.add('selected'); }
   else { const el = document.getElementById('sc-' + id); if (el) el.classList.add('selected'); }
-  // Show/hide the libre detail card
+  // Show/hide cards
   const cardLibre = document.getElementById('card-libre');
   if (cardLibre) cardLibre.style.display = id === 'libre' ? 'block' : 'none';
+  const cardLevel = document.getElementById('card-level');
+  const isProgramme = id && id !== 'libre' && DEFAULT_SESSIONS.find(s => s.id === id);
+  if (cardLevel) cardLevel.style.display = isProgramme ? 'block' : 'none';
+  // Reset level pills
+  document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('selected'));
   showCoachAdvice();
+}
+
+function selectLevel(level) {
+  selectedLevel = level;
+  document.querySelectorAll('.level-pill').forEach(p => {
+    p.classList.toggle('selected', p.dataset.level === level);
+  });
 }
 
 // ── COACH AUTO ───────────────────────────────────────────────────────────────
@@ -626,25 +774,22 @@ function openDetailModal(id) {
   const s = getAllSessions().find(x => x.id === id);
   if (!s) return;
   const dayLabels = ['L','M','M','J','V','S','D'];
-  const typeEmoji = { mob: s.emoji, ren: '💪', res: '🫁', rest: '😴' };
+  const typeEmoji = { mob:'🧘', ren:'💪', res:'🫁', rest:'😴' };
   const typeCls = { mob:'mob', ren:'ren', res:'res', rest:'rest' };
 
-  const programHTML = s.program ? `
-    <div style="margin-bottom:20px">
-      <div class="card-title">Programme semaine type</div>
-      <div class="week-program">
-        ${s.program.map((t,i) => `
-          <div class="wp-day">
-            <div class="wp-label">${dayLabels[i]}</div>
-            <div class="wp-pill ${typeCls[t]||'rest'}">${typeEmoji[t]||'❓'}</div>
-          </div>`).join('')}
-      </div>
-    </div>` : '';
+  // Build level tabs if available
+  let levelsHTML = '';
+  if (s.levels) {
+    const levelKeys = ['debutant','intermediaire','champion'];
+    const tabsHTML = levelKeys.map((k,i) => {
+      const lv = s.levels[k];
+      return `<div class="level-tab ${i===0?'active':''}" onclick="switchLevelTab('${id}','${k}',this)">${lv.icon}<span class="lt-icon"></span>${lv.label}<br><small style="font-weight:400;color:var(--muted)">${lv.duration}</small></div>`;
+    }).join('');
 
-  const exercisesHTML = s.exercises && s.exercises.length ? `
-    <div class="card-title" style="margin-bottom:12px">Exercices</div>
-    <div class="exercise-list">
-      ${s.exercises.map(ex => `
+    const contentsHTML = levelKeys.map((k,i) => {
+      const lv = s.levels[k];
+      const prog = lv.program || s.program;
+      const exHTML = lv.exercises.map(ex => `
         <div class="exercise-item">
           <div style="flex-shrink:0">${EXERCISE_SVGS[ex.svg]||''}</div>
           <div class="exercise-info">
@@ -652,8 +797,37 @@ function openDetailModal(id) {
             <div class="exercise-desc">${ex.desc}</div>
             <span class="exercise-sets">${ex.sets}</span>
           </div>
-        </div>`).join('')}
-    </div>` : '';
+        </div>`).join('');
+      const progHTML = prog ? `
+        <div style="margin-bottom:16px">
+          <div class="card-title">Programme semaine type</div>
+          <div class="week-program">
+            ${prog.map((t,i2) => `<div class="wp-day"><div class="wp-label">${dayLabels[i2]}</div><div class="wp-pill ${typeCls[t]||'rest'}">${typeEmoji[t]||'❓'}</div></div>`).join('')}
+          </div>
+        </div>` : '';
+      return `
+        <div class="level-content ${i===0?'active':''}" id="lc-${id}-${k}">
+          <div class="level-desc">${lv.desc}</div>
+          ${progHTML}
+          <div class="card-title" style="margin-bottom:12px">Exercices</div>
+          <div class="exercise-list">${exHTML}</div>
+        </div>`;
+    }).join('');
+
+    levelsHTML = `<div class="level-tabs">${tabsHTML}</div>${contentsHTML}`;
+  } else {
+    // Fallback for custom sessions
+    const exHTML = (s.exercises||[]).map(ex => `
+      <div class="exercise-item">
+        <div style="flex-shrink:0">${EXERCISE_SVGS[ex.svg]||''}</div>
+        <div class="exercise-info">
+          <div class="exercise-name">${ex.name}</div>
+          <div class="exercise-desc">${ex.desc}</div>
+          <span class="exercise-sets">${ex.sets}</span>
+        </div>
+      </div>`).join('');
+    levelsHTML = exHTML ? `<div class="card-title" style="margin-bottom:12px">Exercices</div><div class="exercise-list">${exHTML}</div>` : '';
+  }
 
   document.getElementById('modal-detail-body').innerHTML = `
     <div class="detail-header">
@@ -662,17 +836,26 @@ function openDetailModal(id) {
         <div class="detail-name">${s.name}</div>
         <div class="detail-tags">
           <span class="detail-tag">${s.duration||'~10 min'}</span>
-          <span class="detail-tag green">${s.level||'Tous niveaux'}</span>
+          ${s.benefits ? s.benefits.map(b=>`<span class="detail-tag green">${b}</span>`).join('') : ''}
         </div>
       </div>
     </div>
     <p style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:20px">${s.description||''}</p>
-    ${programHTML}
-    ${exercisesHTML}
-    <button class="btn-primary" onclick="selectSession('${s.id}');closeModal('modal-detail');document.querySelector('.nav-btn').click()">
+    ${levelsHTML}
+    <button class="btn-primary" style="margin-top:8px" onclick="selectSession('${s.id}');closeModal('modal-detail');document.querySelector('.nav-btn').click()">
       CHOISIR CETTE SÉANCE AUJOURD'HUI
     </button>`;
   document.getElementById('modal-detail').classList.add('show');
+}
+
+function switchLevelTab(sessionId, level, el) {
+  // Switch tabs
+  el.closest('.modal').querySelectorAll('.level-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  // Switch content
+  el.closest('.modal').querySelectorAll('.level-content').forEach(c => c.classList.remove('active'));
+  const target = document.getElementById('lc-' + sessionId + '-' + level);
+  if (target) target.classList.add('active');
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
@@ -757,6 +940,12 @@ async function saveSeance() {
     finalComment = type + (duree ? ' — ' + duree : '') + (commentaire ? ' · ' + commentaire : '');
   }
 
+  // Add level info to comment if selected
+  const levelLabels = { debutant:'Débutant', intermediaire:'Intermédiaire', champion:'Champion' };
+  if (selectedLevel && session) {
+    finalComment = (finalComment ? finalComment + ' · ' : '') + 'Niveau : ' + (levelLabels[selectedLevel] || selectedLevel);
+  }
+
   const payload = {
     date: new Date().toLocaleDateString('fr-FR'),
     seance_faite: selectedSession !== null ? 'OUI' : 'NON',
@@ -766,7 +955,7 @@ async function saveSeance() {
     energie: selectedEnergie,
     commentaire: finalComment || (session ? session.name : selectedSession === 'libre' ? 'Activité libre' : 'Repos'),
     score_forme: score,
-    coach_ia: selectedSession === 'libre' ? 'Activité libre' : '',
+    coach_ia: selectedSession === 'libre' ? 'Activité libre' : (selectedLevel || ''),
     progression_active: selectedSession !== null ? 'OUI' : 'NON'
   };
 
@@ -784,12 +973,13 @@ async function saveSeance() {
     succBanner.classList.add('show');
     const label = selectedSession === 'libre'
       ? '🎾 ' + (document.getElementById('libre-type').value.trim() || 'Activité libre')
-      : session ? session.emoji + ' ' + session.name : '😴 Repos';
+      : session ? session.emoji + ' ' + session.name + (selectedLevel ? ' · ' + (levelLabels[selectedLevel]||'') : '') : '😴 Repos';
     document.getElementById('success-score-text').textContent =
       `${label} · Score : ${score}/10 · Énergie : ${selectedEnergie}/5`;
-    selectedSession = null;
+    selectedSession = null; selectedLevel = null;
     renderSessionGrid();
     document.getElementById('card-libre').style.display = 'none';
+    document.getElementById('card-level').style.display = 'none';
     document.getElementById('libre-type').value = '';
     document.getElementById('libre-heures').value = '';
     document.getElementById('libre-minutes').value = '';
@@ -797,12 +987,34 @@ async function saveSeance() {
     document.getElementById('textarea-comment').value = '';
     setEnergie(3);
     renderStats(); renderWeek();
-    toast('Activité enregistrée ! 💪');
+    toast('Séance enregistrée ! 💪');
   } catch(e) {
     errBanner.textContent = '⚠️ Erreur lors de l\'enregistrement.';
     errBanner.classList.add('show');
   }
   btn.disabled = false;
+  showLoader(false);
+}
+
+// ── SUPPRESSION ───────────────────────────────────────────────────────────────
+async function deleteSeance(date) {
+  if (!confirm(`Supprimer la séance du ${date} ?`)) return;
+  showLoader(true);
+  try {
+    await fetch(sheetUrl, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'delete', date })
+    });
+    // Remove from local data
+    allData = allData.filter(r => r.date !== date);
+    renderHistory();
+    renderStats();
+    renderWeek();
+    toast('Séance supprimée ✓');
+  } catch(e) {
+    toast('⚠️ Erreur lors de la suppression');
+  }
   showLoader(false);
 }
 
@@ -931,9 +1143,14 @@ function renderHistory() {
     if (r.mobilite==='OUI') b.push(`<span class="badge done">🧘 Mobilité</span>`);
     if (r.renforcement==='OUI') b.push(`<span class="badge done">💪 Renfo</span>`);
     if (r.respiration==='OUI') b.push(`<span class="badge done">🫁 Respi</span>`);
-    if (r.commentaire && !['OUI','NON','Repos',''].includes(r.commentaire) && !b.length) b.push(`<span class="badge done">✨ ${r.commentaire.substring(0,18)}</span>`);
+    if (r.commentaire && !['OUI','NON','Repos',''].includes(r.commentaire) && !b.length) b.push(`<span class="badge done">✨ ${r.commentaire.substring(0,20)}</span>`);
     if (!b.length) b.push(`<span class="badge">😴 Repos</span>`);
-    return `<div class="history-item"><div class="history-date">${r.date}</div><div class="history-badges">${b.join('')}</div><div class="history-score">${r.score_forme||'—'}</div></div>`;
+    return `<div class="history-item">
+      <div class="history-date">${r.date}</div>
+      <div class="history-badges">${b.join('')}</div>
+      <div class="history-score">${r.score_forme||'—'}</div>
+      <button class="history-del-btn" onclick="deleteSeance('${r.date}')" title="Supprimer">🗑️</button>
+    </div>`;
   }).join('');
 }
 
