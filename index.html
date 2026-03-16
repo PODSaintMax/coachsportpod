@@ -66,6 +66,11 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 .session-none { background:var(--surface2); border:2px dashed var(--border); border-radius:14px; padding:14px; text-align:center; cursor:pointer; transition:all .2s; grid-column:1/-1; }
 .session-none.selected { border-color:var(--muted); background:rgba(107,114,128,.07); }
 .session-none span { font-size:13px; color:var(--muted); font-weight:500; }
+.session-libre { background:var(--surface2); border:2px dashed var(--border); border-radius:14px; padding:14px 12px; cursor:pointer; transition:all .2s; grid-column:1/-1; display:flex; align-items:center; gap:12px; }
+.session-libre.selected { border-color:#f59e0b; background:rgba(245,158,11,.07); }
+.session-libre .sl-emoji { font-size:28px; }
+.session-libre .sl-text { font-size:13px; font-weight:600; color:var(--text); line-height:1.4; }
+.session-libre .sl-text small { font-weight:400; color:var(--muted); font-size:11px; }
 
 /* ENERGIE */
 .energie-pills { display:flex; gap:8px; }
@@ -222,6 +227,22 @@ textarea:focus { border-color:var(--accent); }
     <div class="card">
       <div class="card-title">Choisir ma séance du jour <span style="color:var(--danger);font-size:10px">(1 seule)</span></div>
       <div class="session-grid" id="session-grid"></div>
+    </div>
+    <div class="card" id="card-libre" style="display:none">
+      <div class="card-title">🎾 Détails de l'activité libre</div>
+      <div class="form-row">
+        <label class="form-label">Type d'activité</label>
+        <input type="text" class="form-input" id="libre-type" placeholder="Ex : Tennis, Vélo, Padel, Natation…">
+      </div>
+      <div class="form-row" style="margin-top:12px">
+        <label class="form-label">Durée</label>
+        <div style="display:flex;gap:10px;align-items:center">
+          <input type="number" class="form-input" id="libre-heures" placeholder="0" min="0" max="12" style="width:72px;text-align:center">
+          <span style="color:var(--muted);font-size:13px">h</span>
+          <input type="number" class="form-input" id="libre-minutes" placeholder="45" min="0" max="59" style="width:72px;text-align:center">
+          <span style="color:var(--muted);font-size:13px">min</span>
+        </div>
+      </div>
     </div>
     <div class="card">
       <div class="card-title">Énergie du jour</div>
@@ -515,6 +536,10 @@ function renderSessionGrid() {
   `).join('') + `
     <div class="session-none ${selectedSession === null ? 'selected' : ''}" onclick="selectSession(null)">
       <span>😴 Jour de repos</span>
+    </div>
+    <div class="session-libre ${selectedSession === 'libre' ? 'selected' : ''}" onclick="selectSession('libre')">
+      <span class="sl-emoji">🎾</span>
+      <span class="sl-text">Activité libre<br><small>Tennis, vélo, padel…</small></span>
     </div>`;
 }
 
@@ -522,9 +547,15 @@ function selectSession(id) {
   selectedSession = id;
   document.querySelectorAll('.session-card').forEach(c => c.classList.remove('selected'));
   const none = document.querySelector('.session-none');
+  const libre = document.querySelector('.session-libre');
   if (none) none.classList.remove('selected');
+  if (libre) libre.classList.remove('selected');
   if (id === null) { if (none) none.classList.add('selected'); }
+  else if (id === 'libre') { if (libre) libre.classList.add('selected'); }
   else { const el = document.getElementById('sc-' + id); if (el) el.classList.add('selected'); }
+  // Show/hide the libre detail card
+  const cardLibre = document.getElementById('card-libre');
+  if (cardLibre) cardLibre.style.display = id === 'libre' ? 'block' : 'none';
   showCoachAdvice();
 }
 
@@ -713,7 +744,18 @@ function updateScore(val) {
 async function saveSeance() {
   const score = parseInt(document.getElementById('slider-score').value);
   const commentaire = document.getElementById('textarea-comment').value.trim();
-  const session = selectedSession ? getAllSessions().find(s => s.id === selectedSession) : null;
+  const session = selectedSession && selectedSession !== 'libre' ? getAllSessions().find(s => s.id === selectedSession) : null;
+
+  // Build commentaire for libre activity
+  let finalComment = commentaire;
+  if (selectedSession === 'libre') {
+    const type = document.getElementById('libre-type').value.trim();
+    const h = parseInt(document.getElementById('libre-heures').value) || 0;
+    const m = parseInt(document.getElementById('libre-minutes').value) || 0;
+    const duree = h > 0 && m > 0 ? `${h}h${m}min` : h > 0 ? `${h}h` : m > 0 ? `${m}min` : '';
+    if (!type) { toast('⚠️ Indique le type d\'activité'); return; }
+    finalComment = type + (duree ? ' — ' + duree : '') + (commentaire ? ' · ' + commentaire : '');
+  }
 
   const payload = {
     date: new Date().toLocaleDateString('fr-FR'),
@@ -722,9 +764,9 @@ async function saveSeance() {
     renforcement: selectedSession === 'renforcement' ? 'OUI' : 'NON',
     respiration: selectedSession === 'respiration' ? 'OUI' : 'NON',
     energie: selectedEnergie,
-    commentaire: commentaire || (session ? session.name : 'Repos'),
+    commentaire: finalComment || (session ? session.name : selectedSession === 'libre' ? 'Activité libre' : 'Repos'),
     score_forme: score,
-    coach_ia: '',
+    coach_ia: selectedSession === 'libre' ? 'Activité libre' : '',
     progression_active: selectedSession !== null ? 'OUI' : 'NON'
   };
 
@@ -740,15 +782,22 @@ async function saveSeance() {
     await fetch(sheetUrl, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) });
     allData.push(payload);
     succBanner.classList.add('show');
+    const label = selectedSession === 'libre'
+      ? '🎾 ' + (document.getElementById('libre-type').value.trim() || 'Activité libre')
+      : session ? session.emoji + ' ' + session.name : '😴 Repos';
     document.getElementById('success-score-text').textContent =
-      `${session ? session.emoji+' '+session.name : '😴 Repos'} · Score : ${score}/10 · Énergie : ${selectedEnergie}/5`;
+      `${label} · Score : ${score}/10 · Énergie : ${selectedEnergie}/5`;
     selectedSession = null;
     renderSessionGrid();
+    document.getElementById('card-libre').style.display = 'none';
+    document.getElementById('libre-type').value = '';
+    document.getElementById('libre-heures').value = '';
+    document.getElementById('libre-minutes').value = '';
     document.getElementById('slider-score').value = 5; updateScore(5);
     document.getElementById('textarea-comment').value = '';
     setEnergie(3);
     renderStats(); renderWeek();
-    toast('Séance enregistrée ! 💪');
+    toast('Activité enregistrée ! 💪');
   } catch(e) {
     errBanner.textContent = '⚠️ Erreur lors de l\'enregistrement.';
     errBanner.classList.add('show');
