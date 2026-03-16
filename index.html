@@ -895,7 +895,7 @@
 <script>
 // ─── STATE ─────────────────────────────────────────────────────────────────
 // ✅ COLLE TON URL ICI UNE BONNE FOIS POUR TOUTES :
-const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbycihlqqNA9ubd2hGRMXxYekMaUZzlQWmVMq4s_MLaT6c6_iRSFgsrNF7z1ZxfklvRZ/exec';
+const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbzF0IA3EXm39Vpw5i7PBC3RSKJ2GktLoMZHkdiwD86oTBI3oMPFEGrbU02P_9OSmy0/exec';
 
 let sheetUrl = SHEET_URL_FIXE !== 'COLLE_TON_URL_ICI'
   ? SHEET_URL_FIXE
@@ -977,16 +977,35 @@ function showPage(name, btn) {
   if (name === 'history') renderHistory();
 }
 
-// ─── DATA LOADING ────────────────────────────────────────────────────────────
-async function loadData() {
+// ─── DATA LOADING (JSONP — compatible iOS Safari) ────────────────────────────
+function loadData() {
   showLoader(true);
-  try {
-    const res = await fetch(sheetUrl, { method: 'GET', mode: 'cors' });
-    const raw = await res.json();
-    // raw[0] = headers, rest = data rows
-    if (raw.length > 1) {
+
+  // Nettoyer l'ancien callback s'il existe
+  if (window.__jsonpCallback) {
+    delete window.__jsonpCallback;
+    const old = document.getElementById('jsonp-script');
+    if (old) old.remove();
+  }
+
+  const callbackName = '__jsonpCallback';
+  const timeout = setTimeout(() => {
+    showLoader(false);
+    toast('⚠️ Impossible de charger les données');
+    delete window[callbackName];
+    const s = document.getElementById('jsonp-script');
+    if (s) s.remove();
+  }, 10000);
+
+  window[callbackName] = function(raw) {
+    clearTimeout(timeout);
+    delete window[callbackName];
+    const s = document.getElementById('jsonp-script');
+    if (s) s.remove();
+
+    if (Array.isArray(raw) && raw.length > 1) {
       allData = raw.slice(1).filter(r => r[0] !== '').map(r => ({
-        date: r[0],
+        date: String(r[0]),
         seance_faite: r[1],
         mobilite: r[2],
         renforcement: r[3],
@@ -1000,27 +1019,62 @@ async function loadData() {
     }
     renderStats();
     renderWeek();
-  } catch (e) {
+    showLoader(false);
+  };
+
+  const script = document.createElement('script');
+  script.id = 'jsonp-script';
+  script.src = sheetUrl + '?callback=' + callbackName + '&t=' + Date.now();
+  script.onerror = () => {
+    clearTimeout(timeout);
+    showLoader(false);
     toast('⚠️ Impossible de charger les données');
-  }
-  showLoader(false);
+    delete window[callbackName];
+  };
+  document.head.appendChild(script);
 }
 
-async function refreshData() {
+function refreshData() {
   toast('Actualisation…');
-  await loadData();
-  toast('Données actualisées ✓');
+  loadData();
+  // Le toast "actualisé" sera affiché après chargement
 }
 
-async function testConnection() {
+function testConnection() {
   showLoader(true);
-  try {
-    await fetch(sheetUrl, { method: 'GET', mode: 'cors' });
-    toast('✅ Connexion réussie !');
-  } catch (e) {
+  const cbName = 'jsonp_test_' + Date.now();
+  const timeout = setTimeout(() => {
+    delete window[cbName];
+    const s = document.getElementById('jsonp-test-script');
+    if (s) s.remove();
+    showLoader(false);
+    toast('❌ Connexion échouée (timeout)');
+  }, 8000);
+
+  window[cbName] = function(raw) {
+    clearTimeout(timeout);
+    delete window[cbName];
+    const s = document.getElementById('jsonp-test-script');
+    if (s) s.remove();
+    showLoader(false);
+    if (Array.isArray(raw)) {
+      toast('✅ Connexion réussie !');
+    } else {
+      toast('❌ Réponse inattendue du script');
+    }
+  };
+
+  const script = document.createElement('script');
+  script.id = 'jsonp-test-script';
+  script.src = sheetUrl + '?callback=' + cbName + '&t=' + Date.now();
+  script.onerror = () => {
+    clearTimeout(timeout);
+    delete window[cbName];
+    showLoader(false);
     toast('❌ Connexion échouée');
-  }
-  showLoader(false);
+  };
+  document.head.appendChild(script);
+}
 }
 
 // ─── FORM ───────────────────────────────────────────────────────────────────
@@ -1077,9 +1131,11 @@ async function saveSeance() {
   showLoader(true);
 
   try {
+    // Utilisation de no-cors pour iOS Safari (pas de lecture de réponse, mais l'écriture fonctionne)
     await fetch(sheetUrl, {
       method: 'POST',
-      mode: 'cors',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(payload)
     });
 
