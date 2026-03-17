@@ -204,9 +204,17 @@ textarea:focus { border-color:var(--accent); }
 .loading-overlay.show { opacity:1; pointer-events:all; }
 .spinner { width:44px; height:44px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
 @keyframes spin { to{transform:rotate(360deg)} }
-.empty-state { text-align:center; padding:48px 24px; color:var(--muted); }
-.empty-state .icon { font-size:48px; margin-bottom:12px; }
-.empty-state p { font-size:14px; line-height:1.5; }
+/* DATE PICKER activité libre */
+input[type=date].form-input {
+  -webkit-appearance: none;
+  appearance: none;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+}
+input[type=date].form-input::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -249,6 +257,10 @@ textarea:focus { border-color:var(--accent); }
     </div>
     <div class="card" id="card-libre" style="display:none">
       <div class="card-title">🎾 Détails de l'activité libre</div>
+      <div class="form-row">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="libre-date">
+      </div>
       <div class="form-row">
         <label class="form-label">Type d'activité</label>
         <input type="text" class="form-input" id="libre-type" placeholder="Ex : Tennis, Vélo, Padel, Natation…">
@@ -410,7 +422,7 @@ textarea:focus { border-color:var(--accent); }
 <div class="loading-overlay" id="loader"><div class="spinner"></div></div>
 
 <script>
-const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbzSFZmSBiRAigR17fs_jVx3mIs_x5YAkMkhg8gjFU_dxS05P2YJevmgUYHO1z-nTEMu/exec';
+const SHEET_URL_FIXE = 'https://script.google.com/macros/s/AKfycbynS7IE9qTG-BJ53hahYQVBcgkcUrhtWPl17mP7ayhN1y6Fxo_yEWBLa9RbvFUVq0LM/exec';
 
 // ── SÉANCES PAR DÉFAUT ──────────────────────────────────────────────────────
 const DEFAULT_SESSIONS = [
@@ -692,6 +704,11 @@ function selectSession(id) {
   // Show/hide cards
   const cardLibre = document.getElementById('card-libre');
   if (cardLibre) cardLibre.style.display = id === 'libre' ? 'block' : 'none';
+  // Init date picker to today when selecting libre
+  if (id === 'libre') {
+    const dp = document.getElementById('libre-date');
+    if (dp && !dp.value) dp.value = new Date().toISOString().split('T')[0];
+  }
   const cardLevel = document.getElementById('card-level');
   const isProgramme = id && id !== 'libre' && DEFAULT_SESSIONS.find(s => s.id === id);
   if (cardLevel) cardLevel.style.display = isProgramme ? 'block' : 'none';
@@ -946,8 +963,18 @@ async function saveSeance() {
     finalComment = (finalComment ? finalComment + ' · ' : '') + 'Niveau : ' + (levelLabels[selectedLevel] || selectedLevel);
   }
 
+  // Date : utilise le date picker pour l'activité libre, sinon aujourd'hui
+  let dateStr = new Date().toLocaleDateString('fr-FR');
+  if (selectedSession === 'libre') {
+    const dp = document.getElementById('libre-date');
+    if (dp && dp.value) {
+      const parts = dp.value.split('-'); // yyyy-mm-dd
+      dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`; // dd/mm/yyyy
+    }
+  }
+
   const payload = {
-    date: new Date().toLocaleDateString('fr-FR'),
+    date: dateStr,
     seance_faite: selectedSession !== null ? 'OUI' : 'NON',
     mobilite: selectedSession === 'mobilite' ? 'OUI' : 'NON',
     renforcement: selectedSession === 'renforcement' ? 'OUI' : 'NON',
@@ -983,6 +1010,7 @@ async function saveSeance() {
     document.getElementById('libre-type').value = '';
     document.getElementById('libre-heures').value = '';
     document.getElementById('libre-minutes').value = '';
+    document.getElementById('libre-date').value = '';
     document.getElementById('slider-score').value = 5; updateScore(5);
     document.getElementById('textarea-comment').value = '';
     setEnergie(3);
@@ -1000,22 +1028,38 @@ async function saveSeance() {
 async function deleteSeance(date) {
   if (!confirm(`Supprimer la séance du ${date} ?`)) return;
   showLoader(true);
-  try {
-    await fetch(sheetUrl, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'delete', date })
-    });
-    // Remove from local data
-    allData = allData.filter(r => r.date !== date);
-    renderHistory();
-    renderStats();
-    renderWeek();
-    toast('Séance supprimée ✓');
-  } catch(e) {
-    toast('⚠️ Erreur lors de la suppression');
-  }
-  showLoader(false);
+  const cb = '__csp_del_' + Date.now();
+  const t = setTimeout(() => {
+    delete window[cb];
+    const s = document.getElementById('jsonp-del'); if (s) s.remove();
+    showLoader(false);
+    toast('⚠️ Timeout — suppression échouée');
+  }, 10000);
+
+  window[cb] = function(res) {
+    clearTimeout(t);
+    delete window[cb];
+    const s = document.getElementById('jsonp-del'); if (s) s.remove();
+    if (res && res.status === 'deleted') {
+      allData = allData.filter(r => r.date !== date);
+      renderHistory();
+      renderStats();
+      renderWeek();
+      toast('✅ Séance supprimée');
+    } else {
+      toast('⚠️ Séance introuvable dans le Sheet');
+    }
+    showLoader(false);
+  };
+
+  const s = document.createElement('script');
+  s.id = 'jsonp-del';
+  s.src = sheetUrl + '?action=delete&date=' + encodeURIComponent(date) + '&callback=' + cb + '&t=' + Date.now();
+  s.onerror = () => {
+    clearTimeout(t); delete window[cb];
+    showLoader(false); toast('⚠️ Erreur lors de la suppression');
+  };
+  document.head.appendChild(s);
 }
 
 // ── DATA LOADING (JSONP) ──────────────────────────────────────────────────────
